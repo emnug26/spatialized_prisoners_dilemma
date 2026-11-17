@@ -1,11 +1,68 @@
+#!/usr/bin/python3
+
 import sys
 from random import randint
 
+WIDTH = int(sys.argv[1])
+HEIGHT = int(sys.argv[2])
+
+def main():
+    rewards = {
+        (True, True): (3, 3),
+        (True, False): (0, 5),
+        (False, True): (5, 0),
+        (False, False): (1, 1)
+    }
+    strategies = [
+        Strategy(False, False, False), #allways defect black
+        Strategy(False, False, True), #suspicious_doormat blue
+        Strategy(False, True, False), #suspicious_TFT green
+        Strategy(False, True, True), #suspicious_pacifist cyan
+        Strategy(True, False, False), #deceptive_defector red
+        Strategy(True, False, True), #guillible_doormat magenta
+        Strategy(True, True, False), #regular_TFT yellow
+        Strategy(True, True, True) #regular_pacifist white
+    ]
+    def random_strat():
+        return strategies[randint(0, len(strategies)-1)]
+    matrix = [[Cell(random_strat(), ) for col in range(WIDTH)] for row in range(HEIGHT)]
+
+    for row in range(HEIGHT):
+        for col in range(WIDTH):
+            cell = matrix[row][col]
+            cell.south = matrix[(row + 1) % HEIGHT][col]
+            cell.east = matrix[row][(col + 1) % WIDTH]
+
+    while (True):
+        for game in range(200):
+            for row in range(HEIGHT):
+                for cell in matrix[row]:
+                    outcome_south = determine_outcome(cell, cell.south, first=game == 0)
+                    outcome_east = determine_outcome(cell, cell.east, first=game == 0)
+                    reward_south = rewards[outcome_south]
+                    reward_east = rewards[outcome_east]
+                    cell.score += reward_south[0]
+                    cell.score += reward_east[0]
+                    cell.south.score += reward_south[1]
+                    cell.east.score += reward_east[1]
+                    cell.history_south.append(outcome_south)
+                    cell.history_east.append(outcome_east)
+        print_graphic(matrix)
+        #print('')
+        input()
+        for row in range(HEIGHT):
+            for cell in matrix[row]:
+                transmit_strategy(cell, cell.south)
+                transmit_strategy(cell, cell.east)
 
 class Strategy:
     initial: bool
     c_response: bool
     d_response: bool
+    def __init__(self, initial, c_response, d_response):
+        self.initial = initial
+        self.c_response = c_response
+        self.d_response = d_response
 
 class Cell:
     strategy: Strategy
@@ -14,7 +71,6 @@ class Cell:
     history_south: list[tuple[bool, bool]]
     history_east: list[tuple[bool, bool]]
     score: int
-
     def __init__(self, initial_strat):
         self.score = 0
         self.strategy = initial_strat
@@ -44,20 +100,13 @@ def color_block(cell: Cell) -> str:
     #    the two spaces are necessary for the color to have something to 'paint'
     return f'\033[48;2;{r};{g};{b}m  \033[0m'
 
-def print_matrix():
- for row in range(HEIGHT):
+def print_graphic(matrix):
+    for row in range(HEIGHT):
         line=''
         for col in range(WIDTH):
             colored_cell = color_block(matrix[row][col])
             line += colored_cell
         print(line)
-
-rewards = {
-    (True, True): (3, 3),
-    (True, False): (0, 5),
-    (False, True): (5, 0),
-    (False, False): (1, 1)
-}
 
 def determine_outcome(player: Cell, opponent: Cell, first:bool) -> tuple[bool, bool]:
     if first:
@@ -80,38 +129,5 @@ def determine_outcome(player: Cell, opponent: Cell, first:bool) -> tuple[bool, b
     )
     return (will_cooperate, opponent_will_cooperate)
 
-def random_strat() -> Strategy:
-   return Strategy(*[bool(randint(0,1)) for x in range(3)])
-
-WIDTH = int(sys.argv[1])
-HEIGHT = int(sys.argv[2])
-
-matrix = [[Cell(random_strat(), ) for col in range(WIDTH)] for row in range(HEIGHT)]
-for row in range(HEIGHT):
-    for col in range(WIDTH):
-        cell = matrix[row][col]
-        cell.south = matrix[(row + 1) % HEIGHT][col]
-        cell.east = matrix[row][(col + 1) % WIDTH]
-
-while (True):
-    for game in range(200):
-        for row in range(HEIGHT):
-            for cell in matrix[row]:
-                outcome_south = determine_outcome(cell, cell.south, first=game == 0)
-                outcome_east = determine_outcome(cell, cell.east, first=game == 0)
-                reward_south = rewards[outcome_south]
-                reward_east = rewards[outcome_east]
-                cell.score += reward_south[0]
-                cell.score += reward_east[0]
-                cell.south.score += reward_south[1]
-                cell.east.score += reward_east[1]
-
-                cell.history_south.append(outcome_south)
-                cell.history_east.append(outcome_east)
-    print_matrix()
-    #print('')
-    input()
-    for row in range(HEIGHT):
-        for cell in matrix[row]:
-            transmit_strategy(cell, cell.south)
-            transmit_strategy(cell, cell.east)
+if __name__ == "__main__":
+    main()
