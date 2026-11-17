@@ -1,6 +1,7 @@
 import sys
 from enum import Enum
 from random import randint
+from time import time
 from typing import NamedTuple
 
 
@@ -54,14 +55,14 @@ class Cell:
 
 
 possible_strategies = [
-    Strategy(False, False, False),  #allways defect
-    Strategy(False, False, True),   #suspicious_doormat
-    Strategy(False, True, False),   #suspicious_TFT
-    Strategy(False, True, True),    #suspicious_pacifist
-    Strategy(True, False, False),   #deceptive_defector
-    Strategy(True, False, True),    #guillible_doormat
-    Strategy(True, True, False),    #regular_TFT
-    Strategy(True, True, True)      #regular_pacifist
+    Strategy(False, False, False),  #allways defect             black
+    Strategy(False, False, True),   #suspicious_doormat         blue
+    Strategy(False, True, False),   #suspicious_TFT             green
+    Strategy(False, True, True),    #suspicious_pacifist        cyan
+    Strategy(True, False, False),   #deceptive_defector         red
+    Strategy(True, False, True),    #guillible_doormat          magenta
+    Strategy(True, True, False),    #regular_TFT                yellow
+    Strategy(True, True, True)      #regular_pacifist           white
 ]
 
 def random_strat() -> Strategy|None:
@@ -104,19 +105,18 @@ def print_matrix():
 def get_reward(outcome: tuple[bool, bool]) -> tuple[int, int]:
     match outcome:
         case (True, True):
-            return (3, 3)
+            return (2, 2)
         case (True, False):
-            return (0, 5)
+            return (0, 6)
         case (False, True):
-            return (5, 0)
+            return (5, 6)
         case (False, False):
             return (1, 1)
 
 '''
     Determines what two strategies will be used for a given pair of neighbors in a given round
 '''
-def determine_outcome(player: Cell, direction: Direction, first) -> tuple[bool, bool]:
-    opponent = player.get_neighbor(direction)
+def determine_outcome(player: Cell, opponent: Cell, direction: Direction, first) -> tuple[bool, bool]:
     if first:
         return (player.strategy.initial, opponent.strategy.initial)
     outcome_hist = player.history[direction]
@@ -147,31 +147,42 @@ matrix = [[Cell(random_strat(), row, col) for col in range(WIDTH)] for row in ra
 #   The eliminated cell gets deleted from the list of possbible strategies (it does not enter the next game)
 # at the beginning of the new game all scores are set to 0, and we generate a new matrix
 while (True):
+    start_game = time()
     for game in range(200):
         for row in range(HEIGHT):
             for cell in matrix[row]:
                 southern_neighbor = cell.get_neighbor(Direction.SOUTH)
                 eastern_neightbor = cell.get_neighbor(Direction.EAST)
-                outcome_east = determine_outcome(cell, Direction.EAST, first=game == 0)
-                outcome_south = determine_outcome(cell, Direction.SOUTH, first=game == 0)
+                outcome_south = determine_outcome(
+                    cell, southern_neighbor,
+                    Direction.SOUTH,
+                    first=game == 0
+                )
+                outcome_east = determine_outcome(
+                    cell, eastern_neightbor,
+                    Direction.EAST,
+                    first=game == 0
+                )
+                reward_south = get_reward(outcome_south)
+                reward_east = get_reward(outcome_east)
+                cell.score += reward_south[0]
+                cell.score += reward_east[0]
+                southern_neighbor.score += reward_south[1]
+                eastern_neightbor.score += reward_east[1]
 
                 cell.history[Direction.SOUTH].append(outcome_south)
                 cell.history[Direction.EAST].append(outcome_east)
-
-                cell.score += get_reward(outcome_south)[0]
-                cell.score += get_reward(outcome_east)[0]
-                southern_neighbor.score += get_reward(outcome_south)[1]
-                eastern_neightbor.score += get_reward(outcome_east)[1]
     print_matrix()
+    end_game = time()
+    print(f'game took {round(end_game - start_game, 2)} s')
     input()
-    for game in range(200):
-        for row in range(HEIGHT):
-            for cell in matrix[row]:
-                southern_neighbor = cell.get_neighbor(Direction.SOUTH)
-                eastern_neightbor = cell.get_neighbor(Direction.EAST)
+    for row in range(HEIGHT):
+        for cell in matrix[row]:
+            southern_neighbor = cell.get_neighbor(Direction.SOUTH)
+            eastern_neightbor = cell.get_neighbor(Direction.EAST)
 
-                transmit_strategy(cell, southern_neighbor)
-                transmit_strategy(cell, eastern_neightbor)
+            transmit_strategy(cell, southern_neighbor)
+            transmit_strategy(cell, eastern_neightbor)
 
 
 
