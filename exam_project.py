@@ -62,23 +62,12 @@ def print_graphic(matrix):
 def determine_outcome(player: Cell, opponent: Cell, first:bool) -> tuple[bool, bool]:
     if first:
         return (player.strategy.initial, opponent.strategy.initial)
-    last_outcome: tuple
-    if opponent == player.east:
-        last_outcome = player.history_east[-1]
-    else:
-        last_outcome = player.history_south[-1]
 
-    we_cooperated, they_cooperated = last_outcome
-
-    will_cooperate = (
-        player.strategy.c_response if they_cooperated
-        else player.strategy.d_response
-    )
-    opponent_will_cooperate = (
-        opponent.strategy.c_response if we_cooperated
-        else opponent.strategy.d_response
-    )
-    return (will_cooperate, opponent_will_cooperate)
+    last_outcome = player.history_east[-1] if opponent == player.east else player.history_south[-1]
+    player_cooperated, opponent_cooperated = last_outcome
+    player_c = player.strategy.c_response if opponent_cooperated else player.strategy.d_response
+    opponent_c = opponent.strategy.c_response if player_cooperated else opponent.strategy.d_response
+    return (player_c, opponent_c)
 
 
 REWARDS = {
@@ -122,8 +111,7 @@ while (True):
                 cell.history_south.append(outcome_south)
                 cell.history_east.append(outcome_east)
     print_graphic(matrix)
-    #print('')
-    #input()
+    print()
     for row in range(HEIGHT):
         for cell in matrix[row]:
             transmit_strategy(cell, cell.south)
