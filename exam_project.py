@@ -3,6 +3,7 @@
 import sys
 from random import randint
 
+
 class Strategy:
     initial: bool
     c_response: bool
@@ -23,8 +24,8 @@ class Cell:
         self.scores = {}
         self.history = {}
 
-WIDTH = 64#int(sys.argv[1])
-HEIGHT = 64#int(sys.argv[2])
+WIDTH = int(sys.argv[1])
+HEIGHT = int(sys.argv[2])
 REWARDS = {
     (True, True): (3, 3),
     (True, False): (0, 5),
