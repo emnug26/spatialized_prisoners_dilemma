@@ -129,8 +129,12 @@ for x in range (10):
         for cell in matrix[row]:
             transmit_strategy(cell, cell.south)
             transmit_strategy(cell, cell.east)
+    for row in range(HEIGHT):
+        for cell in matrix[row]:
+            cell.history_east = []
+            cell.history_south = []
 
-    for game in range(4):
+    for game in range(200):
         for row in range(HEIGHT):
             for cell in matrix_copy[row]:
                 outcome_south = determine_outcome(cell, cell.south, first=game == 0)
@@ -144,9 +148,11 @@ for x in range (10):
                 cell.history_south.append(outcome_south)
                 cell.history_east.append(outcome_east)
 
-    print_graphic(matrix)
-    print_graphic(matrix_copy)
     for row in range(HEIGHT):
         for cell in matrix_copy[row]:
             transmit_strategy(cell, cell.south)
             transmit_strategy(cell, cell.east)
+
+    print_graphic(matrix)
+    print()
+    print_graphic(matrix_copy)
