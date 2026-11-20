@@ -28,6 +28,23 @@ class Cell:
         self.history_east = []
         self.history_south = []
 
+REWARDS = {
+    (True, True): (3, 3),
+    (True, False): (0, 5),
+    (False, True): (5, 0),
+    (False, False): (1, 1)
+}
+STRATEGIES = [
+    Strategy(False, False, False), #allways defect black
+    Strategy(False, False, True), #suspicious_doormat blue
+    Strategy(False, True, False), #suspicious_TFT green
+    Strategy(False, True, True), #suspicious_pacifist cyan
+    Strategy(True, False, False), #deceptive_defector red
+    Strategy(True, False, True), #guillible_doormat magenta
+    Strategy(True, True, False), #regular_TFT yellow
+    Strategy(True, True, True) #regular_pacifist white
+]
+
 def transmit_strategy(player:Cell, opponent:Cell) -> Strategy:
     if (player.score > opponent.score):
         opponent.strategy = player.strategy
@@ -69,25 +86,9 @@ def determine_outcome(player: Cell, opponent: Cell, first:bool) -> tuple[bool, b
     opponent_c = opponent.strategy.c_response if player_cooperated else opponent.strategy.d_response
     return (player_c, opponent_c)
 
-
-REWARDS = {
-    (True, True): (3, 3),
-    (True, False): (0, 5),
-    (False, True): (5, 0),
-    (False, False): (1, 1)
-}
-STRATEGIES = [
-    Strategy(False, False, False), #allways defect black
-    Strategy(False, False, True), #suspicious_doormat blue
-    Strategy(False, True, False), #suspicious_TFT green
-    Strategy(False, True, True), #suspicious_pacifist cyan
-    Strategy(True, False, False), #deceptive_defector red
-    Strategy(True, False, True), #guillible_doormat magenta
-    Strategy(True, True, False), #regular_TFT yellow
-    Strategy(True, True, True) #regular_pacifist white
-]
 def random_strat():
     return STRATEGIES[randint(0, len(STRATEGIES)-1)]
+
 matrix = [[Cell(random_strat(), ) for col in range(WIDTH)] for row in range(HEIGHT)]
 
 for row in range(HEIGHT):
@@ -114,5 +115,7 @@ while (True):
     print()
     for row in range(HEIGHT):
         for cell in matrix[row]:
+            cell.history_east = []
+            cell.history_east = []
             transmit_strategy(cell, cell.south)
             transmit_strategy(cell, cell.east)
