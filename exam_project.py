@@ -51,6 +51,13 @@ def color_block(cell: Cell) -> str:
     #    the two spaces are necessary for the color to have something to 'paint'
     return f'\033[48;2;{r};{g};{b}m  \033[0m'
 
+def same_state(a, b):
+    return all(
+        a[row][col].strategy.__dict__ == b[row][col].strategy.__dict__
+        for row in range(HEIGHT)
+        for col in range(WIDTH)
+    )
+
 def print_graphic(matrix):
     for row in range(HEIGHT):
         line=''
@@ -88,15 +95,23 @@ STRATEGIES = [
 ]
 def random_strat():
     return STRATEGIES[randint(0, len(STRATEGIES)-1)]
-matrix = [[Cell(random_strat(), ) for col in range(WIDTH)] for row in range(HEIGHT)]
 
-for row in range(HEIGHT):
-    for col in range(WIDTH):
-        cell = matrix[row][col]
-        cell.south = matrix[(row + 1) % HEIGHT][col]
-        cell.east = matrix[row][(col + 1) % WIDTH]
+def set_neighbors(m: list[list[Cell]]):
+    for row in range(HEIGHT):
+        for col in range(WIDTH):
+            cell = m[row][col]
+            cell.south = m[(row + 1) % HEIGHT][col]
+            cell.east = m[row][(col + 1) % WIDTH]
 
-while (True):
+matrix = [[Cell(random_strat()) for col in range(WIDTH)] for row in range(HEIGHT)]
+matrix_copy = [[Cell(Strategy(matrix[row][col].strategy.initial, matrix[row][col].strategy.c_response, matrix[row][col].strategy.d_response), ) for col in range(WIDTH)] for row in range(HEIGHT)]
+set_neighbors(matrix)
+set_neighbors(matrix_copy)
+
+
+for x in range (10):
+    test_output ='200 rnds eq 4 rnds ' + str(same_state(matrix, matrix_copy))
+    print(test_output)
     for game in range(200):
         for row in range(HEIGHT):
             for cell in matrix[row]:
@@ -110,9 +125,28 @@ while (True):
                 cell.east.score += reward_east[1]
                 cell.history_south.append(outcome_south)
                 cell.history_east.append(outcome_east)
-    print_graphic(matrix)
-    print()
     for row in range(HEIGHT):
         for cell in matrix[row]:
+            transmit_strategy(cell, cell.south)
+            transmit_strategy(cell, cell.east)
+
+    for game in range(4):
+        for row in range(HEIGHT):
+            for cell in matrix_copy[row]:
+                outcome_south = determine_outcome(cell, cell.south, first=game == 0)
+                outcome_east = determine_outcome(cell, cell.east, first=game == 0)
+                reward_south = REWARDS[outcome_south]
+                reward_east = REWARDS[outcome_east]
+                cell.score += reward_south[0]
+                cell.score += reward_east[0]
+                cell.south.score += reward_south[1]
+                cell.east.score += reward_east[1]
+                cell.history_south.append(outcome_south)
+                cell.history_east.append(outcome_east)
+
+    print_graphic(matrix)
+    print_graphic(matrix_copy)
+    for row in range(HEIGHT):
+        for cell in matrix_copy[row]:
             transmit_strategy(cell, cell.south)
             transmit_strategy(cell, cell.east)
