@@ -17,8 +17,11 @@ class Strategy:
 
 class Cell:
     strategy: Strategy
+    north: 'Cell'
     south: 'Cell'
     east: 'Cell'
+    west: 'Cell'
+
     history_south: list[tuple[bool, bool]]
     history_east: list[tuple[bool, bool]]
     score: int
@@ -45,12 +48,14 @@ STRATEGIES = [
     Strategy(True, True, True) #regular_pacifist white
 ]
 
-def transmit_strategy(player:Cell, opponent:Cell) -> Strategy:
-    if (player.score > opponent.score):
-        opponent.strategy = player.strategy
-    elif (player.score < opponent.score):
-        player.strategy = opponent.strategy
-    return player.strategy
+def determine_new_strategy(player:Cell) -> Strategy:
+    neighbors = (player.north, player.south, player.east, player.west)
+    best = player
+    for n in neighbors:
+        if n.score > best.score:
+            best = n
+    return best.strategy
+
 
 def color_block(cell: Cell) -> str:
     r = int(cell.strategy.initial) * 200
@@ -90,14 +95,21 @@ def random_strat():
     return STRATEGIES[randint(0, len(STRATEGIES)-1)]
 
 matrix = [[Cell(random_strat(), ) for col in range(WIDTH)] for row in range(HEIGHT)]
+generation = 0
 
+
+# populate the neighbors after all cells are initalize
+# (otherwise we will reference objects which don't exist yet)
 for row in range(HEIGHT):
     for col in range(WIDTH):
         cell = matrix[row][col]
         cell.south = matrix[(row + 1) % HEIGHT][col]
+        cell.north = matrix[row][(col - 1) % WIDTH]
         cell.east = matrix[row][(col + 1) % WIDTH]
+        cell.west = matrix[row][(col - 1) % WIDTH]
 
 while (True):
+
     for game in range(200):
         for row in range(HEIGHT):
             for cell in matrix[row]:
@@ -111,11 +123,18 @@ while (True):
                 cell.east.score += reward_east[1]
                 cell.history_south.append(outcome_south)
                 cell.history_east.append(outcome_east)
+
+    generation += 1
     print_graphic(matrix)
-    print()
+    print(generation)
+
+    # we generate a matrix of new strategies in order to propagate them simultaneously
+    # if we propagate them in place, we will not get the correct results
+    new_strategies = [[determine_new_strategy(cell) for cell in row] for row in matrix]
     for row in range(HEIGHT):
-        for cell in matrix[row]:
+        for col in range(WIDTH):
+            cell = matrix[row][col]
             cell.history_east = []
             cell.history_east = []
-            transmit_strategy(cell, cell.south)
-            transmit_strategy(cell, cell.east)
+            cell.strategy = new_strategies[row][col]
+            #cell.score = 0
