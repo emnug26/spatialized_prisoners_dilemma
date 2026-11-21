@@ -49,12 +49,14 @@ STRATEGIES = [
 
 def determine_new_strategy(player:Cell) -> Strategy:
     neighbors = (player.north, player.south, player.east, player.west)
-    best = player
+    best = [player]
     for n in neighbors:
-        if n.score > best.score:
-            best = n
-    return best.strategy
+        if n.score > best[0].score:
+            best = [n]
+        elif n.score == best[0].score:
+            best.append(n)
 
+    return best[randint(0, len(best)-1)].strategy
 
 def color_block(cell: Cell) -> str:
     r = int(cell.strategy.initial) * 200
@@ -96,7 +98,6 @@ def random_strat():
 matrix = [[Cell(random_strat(), ) for col in range(WIDTH)] for row in range(HEIGHT)]
 generation = 0
 
-
 # populate the neighbors after all cells are initalize
 # (otherwise we will reference objects which don't exist yet)
 for row in range(HEIGHT):
@@ -108,6 +109,7 @@ for row in range(HEIGHT):
         cell.west = matrix[row][(col - 1) % WIDTH]
 
 while (True):
+    # main simulation loop
     for game in range(200):
         for row in range(HEIGHT):
             for cell in matrix[row]:
