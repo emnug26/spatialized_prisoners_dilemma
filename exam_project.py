@@ -16,15 +16,14 @@ class Strategy:
         self.d_response = d_response
 
 class Cell:
+    score: int
     strategy: Strategy
     north: 'Cell'
     south: 'Cell'
     east: 'Cell'
     west: 'Cell'
-
     history_south: list[tuple[bool, bool]]
     history_east: list[tuple[bool, bool]]
-    score: int
     def __init__(self, initial_strat):
         self.score = 0
         self.strategy = initial_strat
@@ -38,14 +37,14 @@ REWARDS = {
     (False, False): (1, 1)
 }
 STRATEGIES = [
-    Strategy(False, False, False), #allways defect black
-    Strategy(False, False, True), #suspicious_doormat blue
-    Strategy(False, True, False), #suspicious_TFT green
-    Strategy(False, True, True), #suspicious_pacifist cyan
-    Strategy(True, False, False), #deceptive_defector red
-    Strategy(True, False, True), #guillible_doormat magenta
-    Strategy(True, True, False), #regular_TFT yellow
-    Strategy(True, True, True) #regular_pacifist white
+    Strategy(False, False, False),  #allways defect         black
+    Strategy(False, False, True),   #suspicious_doormat     blue
+    Strategy(False, True, False),   #suspicious_TFT         green
+    Strategy(False, True, True),    #suspicious_pacifist    cyan
+    Strategy(True, False, False),   #deceptive_defector     red
+    Strategy(True, False, True),    #guillible_doormat      magenta
+    Strategy(True, True, False),    #regular_TFT            yellow
+    Strategy(True, True, True)      #regular_pacifist       white
 ]
 
 def determine_new_strategy(player:Cell) -> Strategy:
@@ -109,7 +108,6 @@ for row in range(HEIGHT):
         cell.west = matrix[row][(col - 1) % WIDTH]
 
 while (True):
-
     for game in range(200):
         for row in range(HEIGHT):
             for cell in matrix[row]:
@@ -137,4 +135,4 @@ while (True):
             cell.history_east = []
             cell.history_south = []
             cell.strategy = new_strategies[row][col]
-            #cell.score = 0
+            cell.score = 0
