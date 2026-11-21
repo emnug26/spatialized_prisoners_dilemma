@@ -114,12 +114,14 @@ matrix_copy = [[Cell(Strategy(matrix[row][col].strategy.initial, matrix[row][col
 set_neighbors(matrix)
 set_neighbors(matrix_copy)
 
+game_1_rounds = 200
+game_2_rounds = 64
 
 for generation in range (10):
-    test_output ='200 rnds eq 4 rnds ' + str(same_state(matrix, matrix_copy))
+    test_output = f'{game_1_rounds} rnds eq 4 {game_2_rounds} rnds ' + str(same_state(matrix, matrix_copy))
     print(test_output)
 
-    for game in range(200):
+    for game in range(game_1_rounds):
         for row in range(HEIGHT):
             for cell in matrix[row]:
                 outcome_south = determine_outcome(cell, cell.south, first=game == 0)
@@ -133,7 +135,7 @@ for generation in range (10):
                 cell.history_south.append(outcome_south)
                 cell.history_east.append(outcome_east)
 
-    for game in range(4):
+    for game in range(game_2_rounds):
         for row in range(HEIGHT):
             for cell in matrix_copy[row]:
                 outcome_south = determine_outcome(cell, cell.south, first=game == 0)
