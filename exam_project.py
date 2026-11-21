@@ -104,7 +104,7 @@ for row in range(HEIGHT):
     for col in range(WIDTH):
         cell = matrix[row][col]
         cell.south = matrix[(row + 1) % HEIGHT][col]
-        cell.north = matrix[row][(col - 1) % WIDTH]
+        cell.north = matrix[(row - 1) % HEIGHT][col]
         cell.east = matrix[row][(col + 1) % WIDTH]
         cell.west = matrix[row][(col - 1) % WIDTH]
 
@@ -135,6 +135,6 @@ while (True):
         for col in range(WIDTH):
             cell = matrix[row][col]
             cell.history_east = []
-            cell.history_east = []
+            cell.history_south = []
             cell.strategy = new_strategies[row][col]
             #cell.score = 0
