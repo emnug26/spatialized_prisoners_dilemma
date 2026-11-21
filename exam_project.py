@@ -17,8 +17,11 @@ class Strategy:
 
 class Cell:
     strategy: Strategy
+    north: 'Cell'
     south: 'Cell'
     east: 'Cell'
+    west: 'Cell'
+
     history_south: list[tuple[bool, bool]]
     history_east: list[tuple[bool, bool]]
     score: int
@@ -28,12 +31,31 @@ class Cell:
         self.history_east = []
         self.history_south = []
 
-def transmit_strategy(player:Cell, opponent:Cell) -> Strategy:
-    if (player.score > opponent.score):
-        opponent.strategy = player.strategy
-    elif (player.score < opponent.score):
-        player.strategy = opponent.strategy
-    return player.strategy
+REWARDS = {
+    (True, True): (3, 3),
+    (True, False): (0, 5),
+    (False, True): (5, 0),
+    (False, False): (1, 1)
+}
+STRATEGIES = [
+    Strategy(False, False, False), #allways defect black
+    Strategy(False, False, True), #suspicious_doormat blue
+    Strategy(False, True, False), #suspicious_TFT green
+    Strategy(False, True, True), #suspicious_pacifist cyan
+    Strategy(True, False, False), #deceptive_defector red
+    Strategy(True, False, True), #guillible_doormat magenta
+    Strategy(True, True, False), #regular_TFT yellow
+    Strategy(True, True, True) #regular_pacifist white
+]
+
+def determine_new_strategy(player:Cell) -> Strategy:
+    neighbors = (player.north, player.south, player.east, player.west)
+    best = player
+    for n in neighbors:
+        if n.score > best.score:
+            best = n
+    return best.strategy
+
 
 def color_block(cell: Cell) -> str:
     r = int(cell.strategy.initial) * 200
@@ -76,23 +98,6 @@ def determine_outcome(player: Cell, opponent: Cell, first:bool) -> tuple[bool, b
     opponent_c = opponent.strategy.c_response if player_cooperated else opponent.strategy.d_response
     return (player_c, opponent_c)
 
-
-REWARDS = {
-    (True, True): (3, 3),
-    (True, False): (0, 5),
-    (False, True): (5, 0),
-    (False, False): (1, 1)
-}
-STRATEGIES = [
-    Strategy(False, False, False), #allways defect black
-    Strategy(False, False, True), #suspicious_doormat blue
-    Strategy(False, True, False), #suspicious_TFT green
-    Strategy(False, True, True), #suspicious_pacifist cyan
-    Strategy(True, False, False), #deceptive_defector red
-    Strategy(True, False, True), #guillible_doormat magenta
-    Strategy(True, True, False), #regular_TFT yellow
-    Strategy(True, True, True) #regular_pacifist white
-]
 def random_strat():
     return STRATEGIES[randint(0, len(STRATEGIES)-1)]
 
@@ -101,17 +106,19 @@ def set_neighbors(m: list[list[Cell]]):
         for col in range(WIDTH):
             cell = m[row][col]
             cell.south = m[(row + 1) % HEIGHT][col]
+            cell.north = m[(row - 1) % HEIGHT][col]
             cell.east = m[row][(col + 1) % WIDTH]
-
+            cell.west = m[row][(col - 1) % WIDTH]
 matrix = [[Cell(random_strat()) for col in range(WIDTH)] for row in range(HEIGHT)]
 matrix_copy = [[Cell(Strategy(matrix[row][col].strategy.initial, matrix[row][col].strategy.c_response, matrix[row][col].strategy.d_response), ) for col in range(WIDTH)] for row in range(HEIGHT)]
 set_neighbors(matrix)
 set_neighbors(matrix_copy)
 
 
-for x in range (10):
+for generation in range (10):
     test_output ='200 rnds eq 4 rnds ' + str(same_state(matrix, matrix_copy))
     print(test_output)
+
     for game in range(200):
         for row in range(HEIGHT):
             for cell in matrix[row]:
@@ -125,16 +132,8 @@ for x in range (10):
                 cell.east.score += reward_east[1]
                 cell.history_south.append(outcome_south)
                 cell.history_east.append(outcome_east)
-    for row in range(HEIGHT):
-        for cell in matrix[row]:
-            transmit_strategy(cell, cell.south)
-            transmit_strategy(cell, cell.east)
-    for row in range(HEIGHT):
-        for cell in matrix[row]:
-            cell.history_east = []
-            cell.history_south = []
 
-    for game in range(200):
+    for game in range(4):
         for row in range(HEIGHT):
             for cell in matrix_copy[row]:
                 outcome_south = determine_outcome(cell, cell.south, first=game == 0)
@@ -148,11 +147,25 @@ for x in range (10):
                 cell.history_south.append(outcome_south)
                 cell.history_east.append(outcome_east)
 
-    for row in range(HEIGHT):
-        for cell in matrix_copy[row]:
-            transmit_strategy(cell, cell.south)
-            transmit_strategy(cell, cell.east)
-
     print_graphic(matrix)
     print()
     print_graphic(matrix_copy)
+    print(generation)
+    print(same_state(matrix,matrix_copy))
+
+    new_strategies = [[determine_new_strategy(cell) for cell in row] for row in matrix]
+    for row in range(HEIGHT):
+        for col in range(WIDTH):
+            cell = matrix[row][col]
+            cell.history_east = []
+            cell.history_south = []
+            cell.strategy = new_strategies[row][col]
+            cell.score = 0
+    new_strategies = [[determine_new_strategy(cell) for cell in row] for row in matrix_copy]
+    for row in range(HEIGHT):
+        for col in range(WIDTH):
+            cell = matrix_copy[row][col]
+            cell.history_east = []
+            cell.history_south = []
+            cell.strategy = new_strategies[row][col]
+            cell.score = 0
