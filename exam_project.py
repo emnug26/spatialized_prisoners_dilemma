@@ -2,6 +2,7 @@
 
 import sys
 from random import randint
+from time import time
 
 WIDTH = int(sys.argv[1])
 HEIGHT = int(sys.argv[2])
@@ -88,6 +89,7 @@ def determine_outcome(player: Cell, opponent: Cell, first:bool) -> tuple[bool, b
 
     last_outcome = player.history_east[-1] if opponent == player.east else player.history_south[-1]
     player_cooperated, opponent_cooperated = last_outcome
+
     player_c = player.strategy.c_response if opponent_cooperated else player.strategy.d_response
     opponent_c = opponent.strategy.c_response if player_cooperated else opponent.strategy.d_response
     return (player_c, opponent_c)
@@ -110,6 +112,7 @@ for row in range(HEIGHT):
 
 while (True):
     # main simulation loop
+    start = time()
     for game in range(200):
         for row in range(HEIGHT):
             for cell in matrix[row]:
@@ -126,7 +129,7 @@ while (True):
 
     generation += 1
     print_graphic(matrix)
-    print(generation)
+
 
     # we generate a matrix of new strategies in order to propagate them simultaneously
     # if we propagate them in place, we will not get the correct results
@@ -138,3 +141,5 @@ while (True):
             cell.history_south = []
             cell.strategy = new_strategies[row][col]
             cell.score = 0
+    end = time()
+    print(f'gen:{generation} took {round(end-start, 2)}s to calc ')
