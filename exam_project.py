@@ -18,9 +18,9 @@ class Strategy:
 class Cell:
     score: int
     strategy: Strategy
-    north: 'Cell'
     south: 'Cell'
     east: 'Cell'
+    north: 'Cell'
     west: 'Cell'
     history_south: list[tuple[bool, bool]]
     history_east: list[tuple[bool, bool]]
