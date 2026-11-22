@@ -1,20 +1,14 @@
 #!/usr/bin/python3
 
 import sys
+from collections import namedtuple
 from random import randint
-from time import time
 
 WIDTH = int(sys.argv[1])
 HEIGHT = int(sys.argv[2])
 
-class Strategy:
-    initial: bool
-    c_response: bool
-    d_response: bool
-    def __init__(self, initial, c_response, d_response):
-        self.initial = initial
-        self.c_response = c_response
-        self.d_response = d_response
+
+Strategy = namedtuple("Strategy", ["initial", "c_response", "d_response"])
 
 class Cell:
     score: int
@@ -37,6 +31,7 @@ REWARDS = {
     (False, True): (5, 0),
     (False, False): (1, 1)
 }
+
 STRATEGIES = [
     Strategy(False, False, False),  #allways defect         black
     Strategy(False, False, True),   #suspicious_doormat     blue
@@ -56,26 +51,24 @@ def determine_new_strategy(player:Cell) -> Strategy:
             best = [n]
         elif n.score == best[0].score:
             best.append(n)
-
     return best[randint(0, len(best)-1)].strategy
 
-def color_block(cell: Cell) -> str:
-    r = int(cell.strategy.initial) * 200
-    g = int(cell.strategy.c_response) * 200
-    b = int(cell.strategy.d_response) * 200
-
-    # The next line requires some explanation:
-    #    The string is surrounded by by '\033' - which executes an SGR (Select Graphic Rendition)
-    #    '[' starts the sequence (it technically starts twice but '0m' just means reset to text mode)
-    #    The data itself is a semicolon seperated value
-    #    1st is the opcode - it means set the background color
-    #    2nd is the mode - 2 means use 24-bit RGB truecolor
-    #    and the rest are the color intensities. (0-255)
-    #    m signifies the end of the control sequence. (it is required)
-    #    the two spaces are necessary for the color to have something to 'paint'
-    return f'\033[48;2;{r};{g};{b}m  \033[0m'
-
 def print_graphic(matrix):
+    def color_block(cell: Cell) -> str:
+        r = int(cell.strategy.initial) * 200
+        g = int(cell.strategy.c_response) * 200
+        b = int(cell.strategy.d_response) * 200
+
+        # The next line requires some explanation:
+        #    The string is surrounded by by '\033' - which executes an SGR (Select Graphic Rendition)
+        #    '[' starts the sequence (it technically starts twice but '0m' just means reset to text mode)
+        #    The data itself is a semicolon seperated value
+        #    1st is the opcode - it means set the background color
+        #    2nd is the mode - 2 means use 24-bit RGB truecolor
+        #    and the rest are the color intensities. (0-255)
+        #    m signifies the end of the control sequence. (it is required)
+        #    the two spaces are necessary for the color to have something to 'paint'
+        return f'\033[48;2;{r};{g};{b}m  \033[0m'
     for row in range(HEIGHT):
         line=''
         for col in range(WIDTH):
@@ -97,49 +90,54 @@ def determine_outcome(player: Cell, opponent: Cell, first:bool) -> tuple[bool, b
 def random_strat():
     return STRATEGIES[randint(0, len(STRATEGIES)-1)]
 
-matrix = [[Cell(random_strat(), ) for col in range(WIDTH)] for row in range(HEIGHT)]
-generation = 0
+def set_neighbors(m: list[list[Cell]]):
+    for row in range(HEIGHT):
+        for col in range(WIDTH):
+            cell = m[row][col]
+            cell.south = m[(row + 1) % HEIGHT][col]
+            cell.north = m[(row - 1) % HEIGHT][col]
+            cell.east = m[row][(col + 1) % WIDTH]
+            cell.west = m[row][(col - 1) % WIDTH]
 
+# pre-compute the outcomes like on page 175:
+all_possible_strat_cells = [Cell(s) for s in STRATEGIES]
+score_matrix = [[0 for _ in range(8)] for _ in range(8)]
+
+for i, player in enumerate(all_possible_strat_cells):
+    for j, opponent in enumerate(all_possible_strat_cells):
+        for game  in range(200):
+            player.east = opponent # hack to make determine_outcome work
+            outcome = determine_outcome(player, opponent, first=game == 0)
+            rewards = REWARDS[outcome]
+            player.history_east.append(outcome)
+            score_matrix[i][j] += rewards[0]
+
+matrix = [[Cell(random_strat()) for col in range(WIDTH)] for row in range(HEIGHT)]
+generation = 0
 # populate the neighbors after all cells are initalize
 # (otherwise we will reference objects which don't exist yet)
-for row in range(HEIGHT):
-    for col in range(WIDTH):
-        cell = matrix[row][col]
-        cell.south = matrix[(row + 1) % HEIGHT][col]
-        cell.north = matrix[(row - 1) % HEIGHT][col]
-        cell.east = matrix[row][(col + 1) % WIDTH]
-        cell.west = matrix[row][(col - 1) % WIDTH]
+set_neighbors(matrix)
 
 while (True):
     # main simulation loop
-    start = time()
-    for game in range(200):
-        for row in range(HEIGHT):
-            for cell in matrix[row]:
-                outcome_south = determine_outcome(cell, cell.south, first=game == 0)
-                outcome_east = determine_outcome(cell, cell.east, first=game == 0)
-                reward_south = REWARDS[outcome_south]
-                reward_east = REWARDS[outcome_east]
-                cell.score += reward_south[0]
-                cell.score += reward_east[0]
-                cell.south.score += reward_south[1]
-                cell.east.score += reward_east[1]
-                cell.history_south.append(outcome_south)
-                cell.history_east.append(outcome_east)
+    for row in range(HEIGHT):
+        for cell in matrix[row]:
+            strat_index = STRATEGIES.index(cell.strategy)
+            south_strat_index = STRATEGIES.index(cell.south.strategy)
+            east_strat_index = STRATEGIES.index(cell.east.strategy)
 
-    generation += 1
+            cell.score += score_matrix[strat_index][south_strat_index]
+            cell.south.score += score_matrix[south_strat_index][strat_index]
+            cell.score += score_matrix[strat_index][east_strat_index]
+            cell.east.score += score_matrix[east_strat_index][strat_index]
+
     print_graphic(matrix)
+    generation += 1
+    print(generation)
 
-
-    # we generate a matrix of new strategies in order to propagate them simultaneously
-    # if we propagate them in place, we will not get the correct results
     new_strategies = [[determine_new_strategy(cell) for cell in row] for row in matrix]
     for row in range(HEIGHT):
         for col in range(WIDTH):
             cell = matrix[row][col]
-            cell.history_east = []
-            cell.history_south = []
             cell.strategy = new_strategies[row][col]
             cell.score = 0
-    end = time()
-    print(f'gen:{generation} took {round(end-start, 2)}s to calc ')
